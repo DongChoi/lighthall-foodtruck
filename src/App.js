@@ -4,7 +4,7 @@ import Map from "./Map";
 function App() {
   return (
     <div className="App">
-      <Map></Map>
+      <Map className="Map"></Map>
     </div>
   );
 }
