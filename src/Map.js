@@ -5,27 +5,39 @@ import {
   Marker,
   Autocomplete,
   DirectionsRenderer,
+  InfoWindow,
 } from "@react-google-maps/api";
 import { clear } from "@testing-library/user-event/dist/clear";
 //renders map component
 
-export default function Map() {
+export default function Map({ vendors }) {
   const [map, setMap] = useState(/** @type google.maps.Map */ (null));
   const [directionsResponse, setDirectionsResponse] = useState("");
   //Center lat lng is san francisco
   const [center, setCenter] = useState({ lat: 37.7749, lng: -122.4194 });
   const [distance, setDistance] = useState("");
   const [duration, setDuration] = useState("");
+  const [selectedMarker, setSelectedMarker] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   /*restructure markers into an object with the keys as objectIds since I am not
     removing out of view markers. still have to decide if I want to show all markers or not*/
-  const [markers, setMarkers] = useState("");
+  // const [markers, setMarkers] = useState("");
   const originRef = useRef();
   const destinationRef = useRef();
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
     libraries: ["places"],
   });
+
+  const vendorIds = Object.keys(vendors);
+
+  function handleMarkerMouseOut() {
+    setSelectedMarker(null);
+  }
+
+  function handleMarkerMouseOver(vendorId) {
+    setSelectedMarker(vendors[vendorId]);
+  }
 
   function locateUser() {
     if (!navigator.geolocation) {
@@ -82,10 +94,6 @@ export default function Map() {
     const bounds = map.getBounds();
     const ne = bounds.getNorthEast();
     const sw = bounds.getSouthWest();
-
-    console.log("Northeast Lat/Lng:", ne.lat(), ne.lng());
-    console.log("Southwest Lat/Lng:", sw.lat(), sw.lng());
-    console.log("origin Ref", originRef);
     // Here, you can perform your query for available restaurants
     // using the latitude and longitude values of the northeast (ne) and southwest (sw) corners
     // and update your markers accordingly.
@@ -102,7 +110,7 @@ export default function Map() {
 
   const markerOptions = {
     icon: {
-      url: "marker-icon.png", // URL or path to your custom marker icon
+      // url: "marker-icon.png", // URL or path to your custom marker icon
       scaledSize: new window.google.maps.Size(32, 32),
     },
   };
@@ -131,12 +139,33 @@ export default function Map() {
           <DirectionsRenderer directions={directionsResponse} />
         )}
         {/* this is where we want to populate many markers */}
-        <Marker
-          position={{ lat: 37.7749, lng: -122.4194 }}
-          animation={window.google.maps.Animation.DROP}
-          title="title"
-          {...markerOptions}
-        />
+        {vendorIds.map((vendorId) => {
+          return (
+            <Marker
+              onMouseOver={() => handleMarkerMouseOver(vendorId)}
+              key={vendors[vendorId].objectid}
+              position={{
+                lat: Number(vendors[vendorId].latitude),
+                lng: Number(vendors[vendorId].longitude),
+              }}
+              animation={window.google.maps.Animation.DROP}
+              title="title"
+              // {...markerOptions}
+              onMouseOut={handleMarkerMouseOut}
+            />
+          );
+        })}
+        {selectedMarker && (
+          <InfoWindow
+            position={{
+              lat: Number(selectedMarker.latitude),
+              lng: Number(selectedMarker.longitude),
+            }}
+            onCloseClick={handleMarkerMouseOut}
+          >
+            <p>{selectedMarker.vendorId}</p>
+          </InfoWindow>
+        )}
         {/* displayin markers or directions */}
       </GoogleMap>
     </div>

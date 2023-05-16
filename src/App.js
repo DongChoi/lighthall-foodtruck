@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 function App() {
   const [vendors, setVendors] = useState({});
+  //future dev
+  //const [filterbytype, setfilter] = useState("foodtruck?")
   function restructureVendorList(vendors) {
-    const restructuredVendors = vendors.map((vendor) => {
+    const restructuredVendors = vendors.reduce((acc, vendor) => {
       const {
         objectid = "",
         applicant = "",
@@ -18,8 +20,7 @@ function App() {
         expirationdate = "",
         facilitytype = "",
       } = vendor;
-
-      return {
+      acc[vendor.objectid] = {
         objectid,
         applicant,
         approved,
@@ -31,7 +32,8 @@ function App() {
         address,
         expirationdate,
       };
-    });
+      return acc;
+    }, {});
     return restructuredVendors;
   }
 
@@ -40,11 +42,16 @@ function App() {
       const currentDate = new Date();
       const formattedDate = currentDate.toLocaleDateString("en-US");
       const vendorsFromLS = JSON.parse(localStorage.getItem("vendors"));
-      if (vendorsFromLS.date !== formattedDate || typeof vendors !== "object") {
+      if (
+        !vendorsFromLS ||
+        vendorsFromLS.date !== formattedDate ||
+        typeof vendors !== "object"
+      ) {
         const resp = await axios.get(
           "https://data.sfgov.org/resource/rqzj-sfat.json"
         );
         const restructuredVendors = restructureVendorList(resp.data);
+        console.log(restructuredVendors);
         const vendorsAndDateForLS = {
           data: restructuredVendors,
           date: formattedDate,
@@ -60,7 +67,7 @@ function App() {
 
   return (
     <div className="App">
-      <Map className="Map"></Map>
+      <Map className="Map" vendors={vendors}></Map>
     </div>
   );
 }
