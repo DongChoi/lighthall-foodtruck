@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   useJsApiLoader,
   GoogleMap,
@@ -7,28 +7,45 @@ import {
   DirectionsRenderer,
 } from "@react-google-maps/api";
 import { clear } from "@testing-library/user-event/dist/clear";
+//renders map component
 
 export default function Map() {
   const [map, setMap] = useState(/** @type google.maps.Map */ (null));
-  const [directionsResposne, setDirectionsResponse] = useState("");
+  const [directionsResponse, setDirectionsResponse] = useState("");
+  //Center lat lng is san francisco
+  const [center, setCenter] = useState({ lat: 37.7749, lng: -122.4194 });
   const [distance, setDistance] = useState("");
   const [duration, setDuration] = useState("");
-
-  /** @type React.MutableRefObject<HTMLInputElement> */
+  const [currentLocation, setCurrentLocation] = useState(null);
+  /*restructure markers into an object with the keys as objectIds since I am not
+    removing out of view markers. still have to decide if I want to show all markers or not*/
+  const [markers, setMarkers] = useState("");
   const originRef = useRef();
-  /** @type React.MutableRefObject<HTMLInputElement> */
   const destinationRef = useRef();
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
     libraries: ["places"],
   });
-  const locations = ["safeway", "my location"];
-  const center = { lat: 37.7749, lng: -122.4194 };
+
+  function locateUser() {
+    if (!navigator.geolocation) {
+      return;
+    } else {
+      navigator.geolocation.getCurrentPosition((position) => {
+        console.log("position", position);
+        const { longitude, latitude } = position.coords;
+        originRef.current.value = `${latitude}, ${longitude}`;
+        setCenter({ lat: latitude, lng: longitude });
+      });
+    }
+  }
+
   //   const bounds = new window.google.maps.LatLngBounds(center);
   if (!isLoaded) {
     return <div>Loading</div>;
   }
 
+  // CALCULATE ROUTE AND DISPLAY DISTANCE & DURATION
   async function calculateRoute() {
     if (originRef.current.value === "" || destinationRef.current.value === "") {
       return;
@@ -47,8 +64,34 @@ export default function Map() {
       setDistance(results.routes[0].legs[0].distance.text);
       // eslint-disable-next-line no-undef
       setDuration(results.routes[0].legs[0].duration.text);
+      console.log(
+        "origin Ref:",
+        originRef,
+        "\n destination Ref",
+        destinationRef,
+        "\n Map: ",
+        GoogleMap
+      );
     }
   }
+
+  //
+  function handleBoundsChanged() {
+    if (!map) return;
+
+    const bounds = map.getBounds();
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+
+    console.log("Northeast Lat/Lng:", ne.lat(), ne.lng());
+    console.log("Southwest Lat/Lng:", sw.lat(), sw.lng());
+    console.log("origin Ref", originRef);
+    // Here, you can perform your query for available restaurants
+    // using the latitude and longitude values of the northeast (ne) and southwest (sw) corners
+    // and update your markers accordingly.
+  }
+
+  //clears route, starting point, destination, distance, and duration
   function clearRoute() {
     setDirectionsResponse(null);
     setDistance("");
@@ -56,6 +99,13 @@ export default function Map() {
     originRef.current.value = "";
     destinationRef.current.value = "";
   }
+
+  const markerOptions = {
+    icon: {
+      url: "marker-icon.png", // URL or path to your custom marker icon
+      scaledSize: new window.google.maps.Size(32, 32),
+    },
+  };
 
   return (
     <div>
@@ -65,9 +115,9 @@ export default function Map() {
       <Autocomplete>
         <input type="text" placeholder="Destination" ref={destinationRef} />
       </Autocomplete>
-      <button onClick={calculateRoute}>calculateRoute</button>
-      <button onClick={clearRoute}>x</button>
-      <button onClick={() => map.panTo(center)}>Locate Me</button>
+      <button onClick={calculateRoute}>Calculate Route</button>
+      <button onClick={clearRoute}>Clear Route</button>
+      <button onClick={locateUser}>Locate Me</button>
       <p>Distance: {distance}</p>
       <p>Duration: {duration}</p>
       <GoogleMap
@@ -75,13 +125,18 @@ export default function Map() {
         zoom={15}
         mapContainerStyle={{ width: "100vw", height: "100vh" }}
         onLoad={(map) => setMap(map)}
+        onBoundsChanged={handleBoundsChanged}
       >
-        {directionsResposne && (
-          <DirectionsRenderer directions={directionsResposne} />
+        {directionsResponse && (
+          <DirectionsRenderer directions={directionsResponse} />
         )}
         {/* this is where we want to populate many markers */}
-        <Marker className="Marker" position={center} />
-        this is where map should be
+        <Marker
+          position={{ lat: 37.7749, lng: -122.4194 }}
+          animation={window.google.maps.Animation.DROP}
+          title="title"
+          {...markerOptions}
+        />
         {/* displayin markers or directions */}
       </GoogleMap>
     </div>
