@@ -1,0 +1,39 @@
+.container {
+  display: flex;
+  position: fixed;
+  flex-direction: column;
+  z-index: 1000;
+  margin: 1rem;
+  padding: 0.5rem;
+  width: fit-content;
+  background-color: white;
+  align-items: baseline;
+  padding-right: 30px;
+}
+
+.icons {
+  border-radius: 25%;
+  padding: 0.05rem;
+  position: absolute;
+  right: 2px;
+}
+.facility-icons {
+  border-radius: 25%;
+  font-size: 1em;
+}
+
+.icons:hover {
+  background-color: rgb(195, 195, 195);
+  transition: background-color 1s ease;
+}
+
+.container-inner {
+  display: flex;
+  flex-direction: row;
+  text-align: left;
+}
+
+.filter {
+  position: absolute;
+  right: 0px;
+}

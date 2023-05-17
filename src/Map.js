@@ -6,10 +6,19 @@ import {
   Autocomplete,
   DirectionsRenderer,
   InfoWindow,
+  MarkerClusterer,
 } from "@react-google-maps/api";
 import { clear } from "@testing-library/user-event/dist/clear";
 //renders map component
-
+import "./Map.css";
+import {
+  UilLocationArrow,
+  UilDirections,
+  UilTimes,
+  UilTruck,
+  UilLuggageCart,
+  UilMegaphone,
+} from "@iconscout/react-unicons";
 export default function Map({ vendors }) {
   const [map, setMap] = useState(/** @type google.maps.Map */ (null));
   const [directionsResponse, setDirectionsResponse] = useState("");
@@ -37,6 +46,7 @@ export default function Map({ vendors }) {
 
   function handleMarkerMouseOver(vendorId) {
     setSelectedMarker(vendors[vendorId]);
+    console.log(vendors[vendorId]);
   }
 
   function locateUser() {
@@ -70,24 +80,14 @@ export default function Map({ vendors }) {
         // eslint-disable-next-line no-undef
         travelMode: google.maps.TravelMode.DRIVING,
       });
-
       setDirectionsResponse(results);
       // eslint-disable-next-line no-undef
       setDistance(results.routes[0].legs[0].distance.text);
       // eslint-disable-next-line no-undef
       setDuration(results.routes[0].legs[0].duration.text);
-      console.log(
-        "origin Ref:",
-        originRef,
-        "\n destination Ref",
-        destinationRef,
-        "\n Map: ",
-        GoogleMap
-      );
     }
   }
 
-  //
   function handleBoundsChanged() {
     if (!map) return;
 
@@ -108,62 +108,111 @@ export default function Map({ vendors }) {
     destinationRef.current.value = "";
   }
 
-  const markerOptions = {
-    icon: {
-      // url: "marker-icon.png", // URL or path to your custom marker icon
-      scaledSize: new window.google.maps.Size(32, 32),
-    },
-  };
-
   return (
     <div>
-      <Autocomplete>
-        <input type="text" placeholder="Start" ref={originRef} />
-      </Autocomplete>
-      <Autocomplete>
-        <input type="text" placeholder="Destination" ref={destinationRef} />
-      </Autocomplete>
-      <button onClick={calculateRoute}>Calculate Route</button>
-      <button onClick={clearRoute}>Clear Route</button>
-      <button onClick={locateUser}>Locate Me</button>
-      <p>Distance: {distance}</p>
-      <p>Duration: {duration}</p>
       <GoogleMap
         center={center}
         zoom={15}
         mapContainerStyle={{ width: "100vw", height: "100vh" }}
         onLoad={(map) => setMap(map)}
         onBoundsChanged={handleBoundsChanged}
+        options={{
+          zoomControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
+          streetViewControl: false,
+        }}
       >
+        <div className="container">
+          <div className="container-inner">
+            <Autocomplete>
+              <input type="text" placeholder="Start" ref={originRef} />
+            </Autocomplete>
+            <UilLocationArrow className="icons" onClick={locateUser} />
+          </div>
+          <div className="container-inner">
+            <Autocomplete>
+              <input
+                type="text"
+                placeholder="Destination"
+                ref={destinationRef}
+              />
+            </Autocomplete>
+            <UilTimes className="icons" onClick={clearRoute} />
+          </div>
+          <div className="container-inner">
+            Distance: {distance}
+            <UilDirections className="icons" onClick={calculateRoute} />
+            <br />
+            Duration: {duration}
+          </div>
+        </div>
+        <div className="container filter">
+          <UilLuggageCart />
+          <UilTruck />
+          <UilMegaphone />
+        </div>
+        {/* renders directions */}
         {directionsResponse && (
           <DirectionsRenderer directions={directionsResponse} />
         )}
-        {/* this is where we want to populate many markers */}
-        {vendorIds.map((vendorId) => {
-          return (
-            <Marker
-              onMouseOver={() => handleMarkerMouseOver(vendorId)}
-              key={vendors[vendorId].objectid}
-              position={{
-                lat: Number(vendors[vendorId].latitude),
-                lng: Number(vendors[vendorId].longitude),
-              }}
-              animation={window.google.maps.Animation.DROP}
-              title="title"
-              // {...markerOptions}
-              onMouseOut={handleMarkerMouseOut}
-            />
-          );
-        })}
+
+        {/* clusterer component must pass down clusterer as a prop to marker */}
+        <MarkerClusterer
+          gridSize={40}
+          minimumClusterSize={2}
+          options={{ maxZoom: 20 }}
+        >
+          {(clusterer) => {
+            return vendorIds.map((vendorId) => {
+              return (
+                <Marker
+                  onMouseOver={() => handleMarkerMouseOver(vendorId)}
+                  key={vendors[vendorId].objectid}
+                  position={{
+                    lat: Number(vendors[vendorId].latitude),
+                    lng: Number(vendors[vendorId].longitude),
+                  }}
+                  animation={window.google.maps.Animation.DROP}
+                  // {...markerOptions}
+                  // onMouseOut={handleMarkerMouseOut}
+                  clusterer={clusterer}
+                />
+              );
+            });
+          }}
+        </MarkerClusterer>
         {selectedMarker && (
           <InfoWindow
+            key={selectedMarker.objectid}
             position={{
               lat: Number(selectedMarker.latitude),
               lng: Number(selectedMarker.longitude),
             }}
             onCloseClick={handleMarkerMouseOut}
           >
-            <p>{selectedMarker.vendorId}</p>
+            <>
+              <h3>
+                {selectedMarker.applicant}{" "}
+                {selectedMarker.facilitytype == "Truck" ? (
+                  <UilTruck className="facility-icons" />
+                ) : (
+                  <UilLuggageCart className="facility-icons" />
+                )}
+              </h3>
+              <p>
+                <b>Menu: </b>
+                {selectedMarker.fooditems}
+              </p>
+              <p>
+                <b>Status: </b>
+                {selectedMarker.status == "REQUESTED"
+                  ? "Coming Soon!"
+                  : selectedMarker.status == "APPROVED"
+                  ? "Open"
+                  : "Permit Expired"}
+              </p>
+            </>
           </InfoWindow>
         )}
         {/* displayin markers or directions */}
