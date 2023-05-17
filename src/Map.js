@@ -1,4 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
+//styling
+import "./Map.css";
+//icons
 import {
   useJsApiLoader,
   GoogleMap,
@@ -8,18 +11,19 @@ import {
   InfoWindow,
   MarkerClusterer,
 } from "@react-google-maps/api";
-import { clear } from "@testing-library/user-event/dist/clear";
 //renders map component
-import "./Map.css";
 import {
   UilLocationArrow,
   UilDirections,
   UilTimes,
   UilTruck,
   UilLuggageCart,
-  UilMegaphone,
+  UilCircle,
+  UilMapPin,
 } from "@iconscout/react-unicons";
-export default function Map({ vendors }) {
+
+/* props: {filters, vendors} from App.js */
+export default function Map({ vendors, filters, handleFiltersState }) {
   const [map, setMap] = useState(/** @type google.maps.Map */ (null));
   const [directionsResponse, setDirectionsResponse] = useState("");
   //Center lat lng is san francisco
@@ -28,27 +32,43 @@ export default function Map({ vendors }) {
   const [duration, setDuration] = useState("");
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
-  /*restructure markers into an object with the keys as objectIds since I am not
-    removing out of view markers. still have to decide if I want to show all markers or not*/
-  // const [markers, setMarkers] = useState("");
   const originRef = useRef();
   const destinationRef = useRef();
+
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
     libraries: ["places"],
   });
 
-  const vendorIds = Object.keys(vendors);
-
-  function handleMarkerMouseOut() {
-    setSelectedMarker(null);
+  if (!isLoaded) {
+    return <div>Loading</div>;
   }
 
+  const vendorIds = Object.keys(vendors);
+  let iconMarker = new window.google.maps.MarkerImage(
+    "https://images.emojiterra.com/twitter/v13.1/512px/1f535.png",
+    null /* size is determined at runtime */,
+    null /* origin is 0,0 */,
+    null /* anchor is bottom center of the scaled image */,
+    new window.google.maps.Size(12, 12)
+  );
+
+  function toggleFilterData(key) {
+    const filterData = { ...filters, [key]: !filters[key] };
+    handleFiltersState(filterData);
+    // setSelectedMarker(null);
+  }
+
+  /********************** handle marker infoview functions **********************/
   function handleMarkerMouseOver(vendorId) {
     setSelectedMarker(vendors[vendorId]);
     console.log(vendors[vendorId]);
   }
+  function handleMarkerCloseClick() {
+    setSelectedMarker(null);
+  }
 
+  /********************* handle map and direction functions *********************/
   function locateUser() {
     if (!navigator.geolocation) {
       return;
@@ -56,19 +76,17 @@ export default function Map({ vendors }) {
       navigator.geolocation.getCurrentPosition((position) => {
         console.log("position", position);
         const { longitude, latitude } = position.coords;
+        const latLng = { lat: latitude, lng: longitude };
         originRef.current.value = `${latitude}, ${longitude}`;
-        setCenter({ lat: latitude, lng: longitude });
+        setCenter(latLng);
+        setCurrentLocation(latLng);
       });
     }
   }
 
-  //   const bounds = new window.google.maps.LatLngBounds(center);
-  if (!isLoaded) {
-    return <div>Loading</div>;
-  }
-
   // CALCULATE ROUTE AND DISPLAY DISTANCE & DURATION
-  async function calculateRoute() {
+  async function calculateRoute(location) {
+    destinationRef.current.value = location || "";
     if (originRef.current.value === "" || destinationRef.current.value === "") {
       return;
     } else {
@@ -88,23 +106,11 @@ export default function Map({ vendors }) {
     }
   }
 
-  function handleBoundsChanged() {
-    if (!map) return;
-
-    const bounds = map.getBounds();
-    const ne = bounds.getNorthEast();
-    const sw = bounds.getSouthWest();
-    // Here, you can perform your query for available restaurants
-    // using the latitude and longitude values of the northeast (ne) and southwest (sw) corners
-    // and update your markers accordingly.
-  }
-
   //clears route, starting point, destination, distance, and duration
   function clearRoute() {
     setDirectionsResponse(null);
     setDistance("");
     setDuration("");
-    originRef.current.value = "";
     destinationRef.current.value = "";
   }
 
@@ -115,7 +121,6 @@ export default function Map({ vendors }) {
         zoom={15}
         mapContainerStyle={{ width: "100vw", height: "100vh" }}
         onLoad={(map) => setMap(map)}
-        onBoundsChanged={handleBoundsChanged}
         options={{
           zoomControl: false,
           mapTypeControl: false,
@@ -123,6 +128,7 @@ export default function Map({ vendors }) {
           streetViewControl: false,
         }}
       >
+        {/********************** controls for directions **********************/}
         <div className="container">
           <div className="container-inner">
             <Autocomplete>
@@ -140,28 +146,52 @@ export default function Map({ vendors }) {
             </Autocomplete>
             <UilTimes className="icons" onClick={clearRoute} />
           </div>
-          <div className="container-inner">
+          <div>
             Distance: {distance}
             <UilDirections className="icons" onClick={calculateRoute} />
             <br />
             Duration: {duration}
           </div>
         </div>
+        {/*************************** FILTER BUTTONS ***************************/}
         <div className="container filter">
-          <UilLuggageCart />
-          <UilTruck />
-          <UilMegaphone />
+          <UilLuggageCart
+            className={`filter-icons ${filters.pushCart ? "active" : ""}`}
+            onClick={() => toggleFilterData("pushCart")}
+          />
+          <UilTruck
+            className={`filter-icons ${filters.truck ? "active" : ""}`}
+            onClick={() => toggleFilterData("truck")}
+          />
+          <UilCircle
+            className={`green filter-icons ${filters.approved ? "active" : ""}`}
+            onClick={() => toggleFilterData("approved")}
+          />
+          <UilCircle
+            className={`yellow filter-icons ${
+              filters.requested ? "active" : ""
+            }`}
+            onClick={() => toggleFilterData("requested")}
+          />
+          <UilCircle
+            className={`red filter-icons ${filters.expired ? "active" : ""}`}
+            onClick={() => toggleFilterData("expired")}
+          />
         </div>
-        {/* renders directions */}
+        {/*************************** GET DIRECTIONS ***************************/}
         {directionsResponse && (
           <DirectionsRenderer directions={directionsResponse} />
         )}
 
+        {/***************************** MARKERS *********************************/}
+        {currentLocation && (
+          <Marker position={currentLocation} icon={iconMarker} />
+        )}
         {/* clusterer component must pass down clusterer as a prop to marker */}
         <MarkerClusterer
           gridSize={40}
           minimumClusterSize={2}
-          options={{ maxZoom: 20 }}
+          options={{ maxZoom: 100 }}
         >
           {(clusterer) => {
             return vendorIds.map((vendorId) => {
@@ -182,6 +212,8 @@ export default function Map({ vendors }) {
             });
           }}
         </MarkerClusterer>
+
+        {/******************* INFORMATION WINDOW FOR MARKERS *******************/}
         {selectedMarker && (
           <InfoWindow
             key={selectedMarker.objectid}
@@ -189,7 +221,7 @@ export default function Map({ vendors }) {
               lat: Number(selectedMarker.latitude),
               lng: Number(selectedMarker.longitude),
             }}
-            onCloseClick={handleMarkerMouseOut}
+            onCloseClick={handleMarkerCloseClick}
           >
             <>
               <h3>
@@ -212,6 +244,21 @@ export default function Map({ vendors }) {
                   ? "Open"
                   : "Permit Expired"}
               </p>
+              {selectedMarker.address && (
+                <p>
+                  <b>Addres: </b>
+                  {selectedMarker.address}
+                </p>
+              )}
+              <UilDirections
+                className="infoview-directions"
+                onClick={() =>
+                  calculateRoute(
+                    `${selectedMarker.latitude}, ${selectedMarker.longitude}` ||
+                      selectedMarker.address
+                  )
+                }
+              />
             </>
           </InfoWindow>
         )}
