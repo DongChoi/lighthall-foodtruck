@@ -64,7 +64,6 @@ export default function Map({ vendors, filters, handleFiltersState }) {
   /********************** handle marker infoview functions **********************/
   function handleMarkerMouseOver(vendorId) {
     setSelectedMarker(vendors[vendorId]);
-    // console.log(vendors[vendorId]);
   }
   function handleMarkerCloseClick() {
     setSelectedMarker(null);
@@ -72,13 +71,11 @@ export default function Map({ vendors, filters, handleFiltersState }) {
 
   /********************* handle map and direction functions *********************/
   function locateUser() {
-    console.log("locating user");
     if (!navigator.geolocation) {
       return;
     } else {
       try {
         navigator.geolocation.getCurrentPosition((position) => {
-          // console.log("position", position);
           const { longitude, latitude } = position.coords;
           const latLng = { lat: latitude, lng: longitude };
           originRef.current.value = `${latitude}, ${longitude}`;
@@ -92,7 +89,6 @@ export default function Map({ vendors, filters, handleFiltersState }) {
         );
       }
     }
-    console.log("located user");
   }
 
   //handleDirectionClick
@@ -102,7 +98,6 @@ export default function Map({ vendors, filters, handleFiltersState }) {
   }
 
   function handleTravelModeChange(newTravelMode) {
-    console.log("am i being called ");
     setTravelMode(newTravelMode);
     calculateRoute(newTravelMode);
   }
@@ -125,7 +120,7 @@ export default function Map({ vendors, filters, handleFiltersState }) {
         setDistance(results.routes[0].legs[0].distance.text);
         // eslint-disable-next-line no-undef
         setDuration(results.routes[0].legs[0].duration.text);
-        console.log(results.routes[0].legs[0].steps);
+
         setStepByStepDirections(results.routes[0].legs[0].steps);
       } catch (e) {
         console.error(e);

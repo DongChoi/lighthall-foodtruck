@@ -1,7 +1,7 @@
 import "./App.css";
 import Map from "./Map";
 import { useEffect, useState } from "react";
-import axios, { spread } from "axios";
+import axios from "axios";
 
 function App() {
   const initialFilterData = {
@@ -43,14 +43,21 @@ function App() {
   }
 
   function handleFiltersState(filterData) {
-    setFilters(filterData);
-    const newVendorsForMap = spreadVendorData(filterData);
-    setVendorsForMap(newVendorsForMap);
+    try {
+      setFilters(filterData);
+      const newVendorsForMap = spreadVendorData(filterData);
+      setVendorsForMap(newVendorsForMap);
+    } catch (e) {
+      console.error(
+        "something went wrong during the filtering vendors process",
+        e
+      );
+    }
   }
-
+  /* accepts filterData and spreads and returns vendor data */
   function spreadVendorData(filterData) {
     const filteredListVendors = [];
-    let newVendorsForMap;
+
     if (filterData.truck) {
       filterData.approved && filteredListVendors.push(vendors.truck.approved);
       filterData.requested && filteredListVendors.push(vendors.truck.requested);
@@ -66,7 +73,7 @@ function App() {
     const mergedVendors = filteredListVendors.reduce((acc, vendors) => {
       return Object.assign(acc, { ...vendors });
     }, {});
-    console.log("mergedVendors", mergedVendors);
+
     return mergedVendors;
   }
 
@@ -98,7 +105,7 @@ function App() {
       }
     }
     const restructuredVendors = { pushCart, truck };
-    console.log(restructuredVendors);
+
     return restructuredVendors;
   }
   //updates once per day to see api update as api does not seem to update often.
@@ -106,36 +113,40 @@ function App() {
     async function fetchVendorsOnMount() {
       const today = new Date();
       const formattedDate = today.toLocaleDateString("en-US");
+
       const vendorsFromLS = JSON.parse(localStorage.getItem("vendors"));
-      if (
-        !vendorsFromLS ||
-        vendorsFromLS.date !== formattedDate ||
-        typeof vendors !== "object"
-      ) {
-        const resp = await axios.get(
-          "https://data.sfgov.org/resource/rqzj-sfat.json"
-        );
-        const restructuredVendors = restructureAndSortVendorsByCategory(
-          resp.data,
-          today
-        );
-        const vendorsAndDateForLS = {
-          data: restructuredVendors,
-          date: formattedDate,
-        };
-        localStorage.setItem("vendors", JSON.stringify(vendorsAndDateForLS));
-        setVendors(restructuredVendors);
-        setVendorsForMap({
-          ...restructuredVendors.truck.approved,
-          ...restructuredVendors.pushCart.approved,
-        });
-      } else {
-        console.log("vendorsFromLS", vendorsFromLS);
-        setVendors(vendorsFromLS.data);
-        setVendorsForMap({
-          ...vendorsFromLS.data.truck.approved,
-          ...vendorsFromLS.data.pushCart.approved,
-        });
+      try {
+        if (
+          !vendorsFromLS ||
+          vendorsFromLS.date !== formattedDate ||
+          typeof vendors !== "object"
+        ) {
+          const resp = await axios.get(
+            "https://data.sfgov.org/resource/rqzj-sfat.json"
+          );
+          const restructuredVendors = restructureAndSortVendorsByCategory(
+            resp.data,
+            today
+          );
+          const vendorsAndDateForLS = {
+            data: restructuredVendors,
+            date: formattedDate,
+          };
+          localStorage.setItem("vendors", JSON.stringify(vendorsAndDateForLS));
+          setVendors(restructuredVendors);
+          setVendorsForMap({
+            ...restructuredVendors.truck.approved,
+            ...restructuredVendors.pushCart.approved,
+          });
+        } else {
+          setVendors(vendorsFromLS.data);
+          setVendorsForMap({
+            ...vendorsFromLS.data.truck.approved,
+            ...vendorsFromLS.data.pushCart.approved,
+          });
+        }
+      } catch (e) {
+        console.error(e);
       }
     }
     fetchVendorsOnMount();
