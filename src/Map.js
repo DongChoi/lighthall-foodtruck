@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 //styling
 import "./Map.css";
 //icons
+import { Tooltip } from "react-tooltip";
 import {
   useJsApiLoader,
   GoogleMap,
@@ -52,7 +53,7 @@ export default function Map({ vendors, filters, handleFiltersState }) {
     null /* anchor is bottom center of the scaled image */,
     new window.google.maps.Size(12, 12)
   );
-
+  //toggles filter object and passes in a new object to parent level to easily update state
   function toggleFilterData(key) {
     const filterData = { ...filters, [key]: !filters[key] };
     handleFiltersState(filterData);
@@ -62,7 +63,7 @@ export default function Map({ vendors, filters, handleFiltersState }) {
   /********************** handle marker infoview functions **********************/
   function handleMarkerMouseOver(vendorId) {
     setSelectedMarker(vendors[vendorId]);
-    console.log(vendors[vendorId]);
+    // console.log(vendors[vendorId]);
   }
   function handleMarkerCloseClick() {
     setSelectedMarker(null);
@@ -70,43 +71,64 @@ export default function Map({ vendors, filters, handleFiltersState }) {
 
   /********************* handle map and direction functions *********************/
   function locateUser() {
+    console.log("locating user");
     if (!navigator.geolocation) {
       return;
     } else {
-      navigator.geolocation.getCurrentPosition((position) => {
-        console.log("position", position);
-        const { longitude, latitude } = position.coords;
-        const latLng = { lat: latitude, lng: longitude };
-        originRef.current.value = `${latitude}, ${longitude}`;
-        setCenter(latLng);
-        setCurrentLocation(latLng);
-      });
+      try {
+        navigator.geolocation.getCurrentPosition((position) => {
+          // console.log("position", position);
+          const { longitude, latitude } = position.coords;
+          const latLng = { lat: latitude, lng: longitude };
+          originRef.current.value = `${latitude}, ${longitude}`;
+          setCenter(latLng);
+          setCurrentLocation(latLng);
+        });
+      } catch (e) {
+        console.error(e);
+        alert(
+          "Something went wrong while trying to locate you, please check your permissions or browser compatibility!"
+        );
+      }
     }
+    console.log("located user");
+  }
+
+  //handleDirectionClick
+  function handleInfoViewDirections(destination) {
+    destinationRef.current.value = destination;
+    calculateRoute();
   }
 
   // CALCULATE ROUTE AND DISPLAY DISTANCE & DURATION
-  async function calculateRoute(location) {
-    destinationRef.current.value = location || "";
+  async function calculateRoute() {
     if (originRef.current.value === "" || destinationRef.current.value === "") {
       return;
     } else {
-      // eslint-disable-next-line no-undef
-      const directionsService = new google.maps.DirectionsService();
-      const results = await directionsService.route({
-        origin: originRef.current.value,
-        destination: destinationRef.current.value,
+      try {
         // eslint-disable-next-line no-undef
-        travelMode: google.maps.TravelMode.DRIVING,
-      });
-      setDirectionsResponse(results);
-      // eslint-disable-next-line no-undef
-      setDistance(results.routes[0].legs[0].distance.text);
-      // eslint-disable-next-line no-undef
-      setDuration(results.routes[0].legs[0].duration.text);
+        const directionsService = new google.maps.DirectionsService();
+        const results = await directionsService.route({
+          origin: originRef.current.value,
+          destination: destinationRef.current.value,
+          // eslint-disable-next-line no-undef
+          travelMode: google.maps.TravelMode.DRIVING,
+        });
+        setDirectionsResponse(results);
+        // eslint-disable-next-line no-undef
+        setDistance(results.routes[0].legs[0].distance.text);
+        // eslint-disable-next-line no-undef
+        setDuration(results.routes[0].legs[0].duration.text);
+      } catch (e) {
+        console.error(e);
+        alert(
+          "Pleaes make sure starting point and destinations are valid locations :)"
+        );
+      }
     }
   }
 
-  //clears route, starting point, destination, distance, and duration
+  //clears route, destination, distance, and duration
   function clearRoute() {
     setDirectionsResponse(null);
     setDistance("");
@@ -134,7 +156,12 @@ export default function Map({ vendors, filters, handleFiltersState }) {
             <Autocomplete>
               <input type="text" placeholder="Start" ref={originRef} />
             </Autocomplete>
-            <UilLocationArrow className="icons" onClick={locateUser} />
+            <UilLocationArrow
+              data-tooltip-content="Get current location"
+              data-tooltip-place="right"
+              className="tool-tip icons"
+              onClick={locateUser}
+            />
           </div>
           <div className="container-inner">
             <Autocomplete>
@@ -144,11 +171,21 @@ export default function Map({ vendors, filters, handleFiltersState }) {
                 ref={destinationRef}
               />
             </Autocomplete>
-            <UilTimes className="icons" onClick={clearRoute} />
+            <UilTimes
+              data-tooltip-content="Clear destination"
+              data-tooltip-place="right"
+              className="tool-tip icons"
+              onClick={clearRoute}
+            />
           </div>
-          <div>
+          <div className="display-container">
             Distance: {distance}
-            <UilDirections className="icons" onClick={calculateRoute} />
+            <UilDirections
+              data-tooltip-content="Get Directions"
+              data-tooltip-place="right"
+              className="tool-tip icons"
+              onClick={calculateRoute}
+            />
             <br />
             Duration: {duration}
           </div>
@@ -156,27 +193,44 @@ export default function Map({ vendors, filters, handleFiltersState }) {
         {/*************************** FILTER BUTTONS ***************************/}
         <div className="container filter">
           <UilLuggageCart
-            className={`filter-icons ${filters.pushCart ? "active" : ""}`}
+            data-tooltip-content="Filter by push cart vendors"
+            data-tooltip-place="left"
+            className={`tool-tip filter-icons ${
+              filters.pushCart ? "active" : ""
+            }`}
             onClick={() => toggleFilterData("pushCart")}
           />
           <UilTruck
-            className={`filter-icons ${filters.truck ? "active" : ""}`}
+            data-tooltip-content="Filter by truck vendors"
+            data-tooltip-place="left"
+            className={`tool-tip filter-icons ${filters.truck ? "active" : ""}`}
             onClick={() => toggleFilterData("truck")}
           />
           <UilCircle
-            className={`green filter-icons ${filters.approved ? "active" : ""}`}
+            data-tooltip-content="Filter by approved permit vendors"
+            data-tooltip-place="left"
+            className={`tool-tip green filter-icons ${
+              filters.approved ? "active" : ""
+            }`}
             onClick={() => toggleFilterData("approved")}
           />
           <UilCircle
-            className={`yellow filter-icons ${
+            data-tooltip-content="Filter by requested permit vendors"
+            data-tooltip-place="left"
+            className={`tool-tip yellow filter-icons ${
               filters.requested ? "active" : ""
             }`}
             onClick={() => toggleFilterData("requested")}
           />
           <UilCircle
-            className={`red filter-icons ${filters.expired ? "active" : ""}`}
+            data-tooltip-content="Filter by expired permit vendors"
+            data-tooltip-place="left"
+            className={`tool-tip red filter-icons ${
+              filters.expired ? "active" : ""
+            }`}
             onClick={() => toggleFilterData("expired")}
           />
+          <Tooltip anchorSelect=".tool-tip" />
         </div>
         {/*************************** GET DIRECTIONS ***************************/}
         {directionsResponse && (
@@ -185,7 +239,13 @@ export default function Map({ vendors, filters, handleFiltersState }) {
 
         {/***************************** MARKERS *********************************/}
         {currentLocation && (
-          <Marker position={currentLocation} icon={iconMarker} />
+          <Marker
+            data-tooltip-content="current location"
+            data-tooltip-place="top"
+            className="tool-tip"
+            position={currentLocation}
+            icon={iconMarker}
+          />
         )}
         {/* clusterer component must pass down clusterer as a prop to marker */}
         <MarkerClusterer
@@ -242,7 +302,7 @@ export default function Map({ vendors, filters, handleFiltersState }) {
                   ? "Coming Soon!"
                   : selectedMarker.status == "APPROVED"
                   ? "Open"
-                  : "Permit Expired"}
+                  : "Permit Expired or Suspended"}
               </p>
               {selectedMarker.address && (
                 <p>
@@ -252,16 +312,18 @@ export default function Map({ vendors, filters, handleFiltersState }) {
               )}
               <UilDirections
                 className="infoview-directions"
-                onClick={() =>
-                  calculateRoute(
-                    `${selectedMarker.latitude}, ${selectedMarker.longitude}` ||
-                      selectedMarker.address
-                  )
-                }
+                onClick={() => {
+                  const destination =
+                    selectedMarker.latitude && selectedMarker.longitude
+                      ? `${selectedMarker.latitude}, ${selectedMarker.longitude}`
+                      : selectedMarker.address;
+                  handleInfoViewDirections(destination);
+                }}
               />
             </>
           </InfoWindow>
         )}
+
         {/* displayin markers or directions */}
       </GoogleMap>
     </div>

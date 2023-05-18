@@ -2,6 +2,7 @@ import "./App.css";
 import Map from "./Map";
 import { useEffect, useState } from "react";
 import axios, { spread } from "axios";
+
 function App() {
   const initialFilterData = {
     truck: true,

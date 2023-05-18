@@ -75,3 +75,7 @@
   width: 3em;
   margin: 0.3em;
 }
+
+.display-container {
+  text-align: initial;
+}
