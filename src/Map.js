@@ -188,7 +188,7 @@ export default function Map({ vendors, filters, handleFiltersState }) {
               data-tooltip-content="Get Directions"
               data-tooltip-place="right"
               className="tool-tip icons"
-              onClick={calculateRoute}
+              onClick={() => calculateRoute(travelMode)}
             />
             <br />
             Duration: {duration}
