@@ -20,8 +20,8 @@ import {
   UilTruck,
   UilLuggageCart,
   UilCircle,
-  UilMapPin,
 } from "@iconscout/react-unicons";
+import StepByStepDirections from "./StepByStepDirections";
 
 /* props: {filters, vendors} from App.js */
 export default function Map({ vendors, filters, handleFiltersState }) {
@@ -29,13 +29,14 @@ export default function Map({ vendors, filters, handleFiltersState }) {
   const [directionsResponse, setDirectionsResponse] = useState("");
   //Center lat lng is san francisco
   const [center, setCenter] = useState({ lat: 37.7749, lng: -122.4194 });
+  const [travelMode, setTravelMode] = useState("DRIVING");
   const [distance, setDistance] = useState("");
   const [duration, setDuration] = useState("");
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const originRef = useRef();
   const destinationRef = useRef();
-
+  const [stepByStepDirections, setStepByStepDirections] = useState(null);
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
     libraries: ["places"],
@@ -97,11 +98,17 @@ export default function Map({ vendors, filters, handleFiltersState }) {
   //handleDirectionClick
   function handleInfoViewDirections(destination) {
     destinationRef.current.value = destination;
-    calculateRoute();
+    calculateRoute(travelMode);
+  }
+
+  function handleTravelModeChange(newTravelMode) {
+    console.log("am i being called ");
+    setTravelMode(newTravelMode);
+    calculateRoute(newTravelMode);
   }
 
   // CALCULATE ROUTE AND DISPLAY DISTANCE & DURATION
-  async function calculateRoute() {
+  async function calculateRoute(travelMode) {
     if (originRef.current.value === "" || destinationRef.current.value === "") {
       return;
     } else {
@@ -111,14 +118,15 @@ export default function Map({ vendors, filters, handleFiltersState }) {
         const results = await directionsService.route({
           origin: originRef.current.value,
           destination: destinationRef.current.value,
-          // eslint-disable-next-line no-undef
-          travelMode: google.maps.TravelMode.DRIVING,
+          travelMode: travelMode,
         });
         setDirectionsResponse(results);
         // eslint-disable-next-line no-undef
         setDistance(results.routes[0].legs[0].distance.text);
         // eslint-disable-next-line no-undef
         setDuration(results.routes[0].legs[0].duration.text);
+        console.log(results.routes[0].legs[0].steps);
+        setStepByStepDirections(results.routes[0].legs[0].steps);
       } catch (e) {
         console.error(e);
         alert(
@@ -133,6 +141,7 @@ export default function Map({ vendors, filters, handleFiltersState }) {
     setDirectionsResponse(null);
     setDistance("");
     setDuration("");
+    setStepByStepDirections(null);
     destinationRef.current.value = "";
   }
 
@@ -254,7 +263,7 @@ export default function Map({ vendors, filters, handleFiltersState }) {
           options={{ maxZoom: 100 }}
         >
           {(clusterer) => {
-            return vendorIds.map((vendorId) => {
+            return vendorIds.map((vendorId, index) => {
               return (
                 <Marker
                   onMouseOver={() => handleMarkerMouseOver(vendorId)}
@@ -325,6 +334,16 @@ export default function Map({ vendors, filters, handleFiltersState }) {
         )}
 
         {/* displayin markers or directions */}
+        {stepByStepDirections ? (
+          <StepByStepDirections
+            handleTravelModeChange={handleTravelModeChange}
+            travelMode={travelMode}
+            stepByStepDirections={stepByStepDirections}
+            clearRoute={clearRoute}
+          />
+        ) : (
+          ""
+        )}
       </GoogleMap>
     </div>
   );
