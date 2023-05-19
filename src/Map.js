@@ -61,6 +61,12 @@ export default function Map({ vendors, filters, handleFiltersState }) {
     // setSelectedMarker(null);
   }
 
+  function handleSearchOnChange(e) {
+    const searchQuery = e.target.value;
+    const filterData = { ...filters, searchQuery };
+    handleFiltersState(filterData);
+  }
+
   /********************** handle marker infoview functions **********************/
   function handleMarkerMouseOver(vendorId) {
     setSelectedMarker(vendors[vendorId]);
@@ -339,6 +345,12 @@ export default function Map({ vendors, filters, handleFiltersState }) {
         ) : (
           ""
         )}
+        <input
+          className="search-query"
+          type="text"
+          placeholder="search by food item!"
+          onChange={handleSearchOnChange}
+        />
       </GoogleMap>
     </div>
   );

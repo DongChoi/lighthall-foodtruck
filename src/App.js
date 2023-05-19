@@ -10,6 +10,7 @@ function App() {
     approved: true,
     requested: false,
     expired: false,
+    searchQuery: "",
   };
 
   const [vendors, setVendors] = useState(null);
@@ -54,6 +55,7 @@ function App() {
       );
     }
   }
+
   /* accepts filterData and spreads and returns vendor data */
   function spreadVendorData(filterData) {
     const filteredListVendors = [];
@@ -63,6 +65,7 @@ function App() {
       filterData.requested && filteredListVendors.push(vendors.truck.requested);
       filterData.expired && filteredListVendors.push(vendors.truck.expired);
     }
+
     if (filterData.pushCart) {
       filterData.approved &&
         filteredListVendors.push(vendors.pushCart.approved);
@@ -70,11 +73,31 @@ function App() {
         filteredListVendors.push(vendors.pushCart.requested);
       filterData.expired && filteredListVendors.push(vendors.pushCart.expired);
     }
-    const mergedVendors = filteredListVendors.reduce((acc, vendors) => {
-      return Object.assign(acc, { ...vendors });
-    }, {});
+    if (filterData.searchQuery) {
+      const mergedVendors = filteredListVendors.reduce((acc, vendors) => {
+        for (let key in vendors) {
+          const vendor = vendors[key];
+          console.log(vendor);
+          console.log(filterData.searchQuery);
+          if (
+            vendor.fooditems.some((item) =>
+              item.toLowerCase().includes(filterData.searchQuery)
+            )
+          ) {
+            acc[key] = vendor;
+          }
+        }
+        return acc;
+      }, {});
 
-    return mergedVendors;
+      return mergedVendors;
+    } else {
+      const mergedVendors = filteredListVendors.reduce((acc, vendors) => {
+        return Object.assign(acc, { ...vendors });
+      }, {});
+
+      return mergedVendors;
+    }
   }
 
   /**
