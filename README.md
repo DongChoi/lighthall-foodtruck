@@ -1,6 +1,6 @@
 # SF Foodie Crawl
 
-![Preview](./public/screenshots/application_demo.png "Preview")
+![Preview](./public/application_demo.png "Preview")
 
 ### Description
 
