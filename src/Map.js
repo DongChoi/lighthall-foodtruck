@@ -261,7 +261,7 @@ export default function Map({ vendors, filters, handleFiltersState }) {
             return vendorIds.map((vendorId, index) => {
               return (
                 <Marker
-                  onMouseOver={() => handleMarkerMouseOver(vendorId)}
+                  onClick={() => handleMarkerMouseOver(vendorId)}
                   key={vendors[vendorId].objectid}
                   position={{
                     lat: Number(vendors[vendorId].latitude),
