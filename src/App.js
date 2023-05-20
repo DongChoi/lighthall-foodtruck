@@ -77,8 +77,7 @@ function App() {
       const mergedVendors = filteredListVendors.reduce((acc, vendors) => {
         for (let key in vendors) {
           const vendor = vendors[key];
-          console.log(vendor);
-          console.log(filterData.searchQuery);
+
           if (
             vendor.fooditems.some((item) =>
               item.toLowerCase().includes(filterData.searchQuery)
