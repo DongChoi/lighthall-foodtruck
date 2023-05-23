@@ -15,8 +15,12 @@ To enhance the experience, SF Foodie Crawl incorporates visualizations using the
 SF Foodie Crawl is the ultimate companion for food lovers in San Francisco. By combining the power of the Google Maps API and the DataSF API, this app delivers real-time permit information, location-based search capabilities, and seamless navigation, empowering users to curate their own unique foodie experiences
 
 ### Technologies used:
-
 - Google Maps Api
+  - Markers
+  - Map
+  - InfoWindow
+  - Clusterers
 - React
 - React-Tool-Tip
 - @react-google-maps/api
+- Vercel
